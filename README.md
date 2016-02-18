@@ -13,10 +13,9 @@ This is a small node.js based tool for downloading your https://save.tv/ video c
 
 Run with `node savetv-dl -u USERNAME -p PASSWORD [-d /my/video/folder] [-n]`
 
-
-| Parameter | Description |
-|-|-|
-| -u | Your save.tv Username. |
-| -p | Your save.tv Password. |
-| -d | Saves the downloaded videos to this folder. This parameter is optional: when not specified, all videos are stored in the current folder. |
-| -n | When set, savetv-dl omits showing a progress bar while downloading. Useful when running this in a cronjob at night, when absolutely nobody is interested in the progress of a download. This parameter is optional. |
+Parameter | Description
+----------|------------
+-u | Your save.tv Username.
+-p | Your save.tv Password.
+-d | Saves the downloaded videos to this folder. This parameter is optional: when not specified, all videos are stored in the current folder. 
+-n | Omits showing a progress bar while downloading. Useful when running this in a cronjob at night, when absolutely nobody is interested in the progress of a download. This parameter is optional.
