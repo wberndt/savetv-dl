@@ -16,6 +16,7 @@ let parameter = stdio.getopt({
     'user': {key: 'u', args: 1, mandatory: true, description: 'Save.TV username'},
     'password': {key: 'p', args: 1, mandatory: true, description: 'Save.TV password'},
     'directory': {key: 'd', args: 1, mandatory: false, description: 'Target directory for downloaded video files..'},
+    'remove': {key: 'r', mandatory: false, description: 'Delete recordings from save.tv after sucessful download.'},
     'noprogess': {key: 'n', mandatory: false, description: 'Don\'t show progress bar while downloading.' }
 });
 
@@ -24,7 +25,8 @@ let authcookie = undefined;
 let createUrlFor = {
     login: function() { return '/STV/M/Index.cfm?sk=PREMIUM'; },
     list: function() { return '/STV/M/obj/archive/JSON/VideoArchiveApi.cfm?bAggregateEntries=false&iEntriesPerPage=1000&iRecordingState=1'; },
-    download: function(id, format) { return `/STV/M/obj/cRecordOrder/croGetDownloadUrl.cfm?TelecastId=${id}&iFormat=${format}&bAdFree=true`; }
+    download: function(id, format) { return `/STV/M/obj/cRecordOrder/croGetDownloadUrl.cfm?TelecastId=${id}&iFormat=${format}&bAdFree=true`; },
+    remove: function(id) { return `/STV/M/obj/cRecordOrder/croDelete.cfm?TelecastID=${id}` }
 };
 
 /**
@@ -257,6 +259,36 @@ let downloadVideo = function(downloadUrl) {
 };
 
 /**
+ * Deletes a video from save.tv
+ *
+ * @param id - Telecast-Id of the recording.
+ * @returns {Promise} - Promise resolving with "true" when the video was deleted.
+ */
+let removeVideo = function(id) {
+    return new Promise(function(resolve, reject) {
+        // do nothing when delete parameter wasn't set
+        if(!parameter.remove) return resolve(false);
+
+        if(!authcookie) return reject("No auth cookie set, did you login?");
+
+        let options = {
+            'hostname': hostname,
+            'path': createUrlFor.remove(id),
+            'headers': {
+                'Cookie': authcookie
+            }
+        };
+
+        requestFromServer(options).then(function() {
+            resolve(true);
+        }).catch(function(err) {
+            reject(err);
+        });
+
+    });
+};
+
+/**
  * Checks if a video was already downloaded and starts a download if not.
  *
  * @param video - Videoitem from getVideoList.
@@ -291,6 +323,10 @@ let handleSingleVideo = function(video) {
                         });
                     })
                     .then(function() {
+                        return removeVideo(video.id);
+                    })
+                    .then(function(deletedVideo) {
+                        if(deletedVideo) console.log("Removed video from online collection.");
                         return resolve();
                     })
                     .catch(function (err) {
