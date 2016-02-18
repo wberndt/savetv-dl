@@ -1,0 +1,11 @@
+{
+  "name": "savetv-dl",
+  "description": "Downloads your save.tv video library.",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "stdio": "^0.2.7",
+    "tingodb": "^0.4.2",
+    "progress": "^1.1.8"
+  }
+}
