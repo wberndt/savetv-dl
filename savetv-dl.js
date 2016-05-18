@@ -7,6 +7,7 @@ let path = require('path');
 let url = require('url');
 let fs = require('fs');
 let progress = require('progress');
+let email = require('emailjs');
 
 let tingodb = require('tingodb')();
 let db = new tingodb.Db(__dirname,{});
@@ -15,10 +16,23 @@ let finishedDownloads = db.collection('savetv-dl.db');
 let parameter = stdio.getopt({
     'user': {key: 'u', args: 1, mandatory: true, description: 'Save.TV username'},
     'password': {key: 'p', args: 1, mandatory: true, description: 'Save.TV password'},
-    'directory': {key: 'd', args: 1, mandatory: false, description: 'Target directory for downloaded video files..'},
-    'remove': {key: 'r', mandatory: false, description: 'Delete recordings from save.tv after sucessful download.'},
-    'noprogess': {key: 'n', mandatory: false, description: 'Don\'t show progress bar while downloading.' }
+    'directory': {key: 'd', args: 1, mandatory: false, description: 'Target directory for downloaded video files.'},
+    'remove': {key: 'r', mandatory: false, description: 'Delete recordings from save.tv after successful download.'},
+    'noprogess': {key: 'n', mandatory: false, description: 'Don\'t show progress bar while downloading.' },
+    'sendmail': {key: 'm', args: 1, mandatory: false, description: 'Send email report to given email address.'}
 });
+
+// Uncomment and set this to match your email setup. Documentation for all server.connect() parameters can be found at
+// https://github.com/eleith/emailjs
+/*
+let mailserver = email.server.connect({
+    user: "user@domain.tld",
+    password: "password",
+    host: "mail.domain.tld",
+    port: 25,
+    tls: true
+});
+*/
 
 let hostname = "www.save.tv";
 let authcookie = undefined;
@@ -29,8 +43,18 @@ let createUrlFor = {
     remove: function(id) { return `/STV/M/obj/cRecordOrder/croDelete.cfm?TelecastID=${id}` }
 };
 
+let mailtext = "SaveTV download job started at " + new Date().toLocaleString()+ ":\r\n";
+
+// Catches console.log() calls and adds the log messages to a string that can be send via email.
+let origLog = console.log;
+console.log = function (message) {
+    mailtext += message + "\r\n";
+    origLog.apply(console, arguments);
+};
+
+
 /**
- * Sends requests to save.tv.
+ * Sends requests to save.tv.W
  *
  * @param options - A node.js http/https agent option object.
  * @param postData - Data that is send when requesting via POST
@@ -365,6 +389,26 @@ let cleanUp = function() {
 };
 
 
+let sendReportingMail = function() {
+    return new Promise(function(resolve, reject) {
+        if(!parameter.sendmail) return resolve();
+
+        if(typeof mailserver === "undefined")
+            return reject("email-config missing, please set mailserver-variable in savetv-dl.js.");
+
+        let domain = parameter.sendmail.substring(parameter.sendmail.lastIndexOf("@")+1);
+
+        mailserver.send({
+            text: mailtext,
+            from: "savetv-dl@" + domain,
+            to: parameter.sendmail,
+            subject: "SaveTV download report"
+        }, function(err) {
+            if(err) reject(err); else resolve();
+        });
+    });
+};
+
 cleanUp()
     .then(function() {
         return login(parameter.user, parameter.password)
@@ -382,7 +426,7 @@ cleanUp()
         // the videos are downloaded one after another instead of having multiple, slow downloads running at the
         // same time.
         let num = 1;
-        videoList.reduce(function(prev, current) {
+        return videoList.reduce(function(prev, current) {
             return prev.then(function() {
                 console.log(`[Video ${num++}/${videoList.length}, ID ${current.id}]: ${current.name}:`);
                 return handleSingleVideo(current);
@@ -391,6 +435,10 @@ cleanUp()
                 console.log("Error:", err);
             });
         }, Promise.resolve());
+    })
+    .then(function() {
+        console.log("Done.");
+        return sendReportingMail();
     })
     .catch(function(err) {
         console.log("Whoops:", err);

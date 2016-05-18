@@ -6,6 +6,7 @@
   "dependencies": {
     "stdio": "^0.2.7",
     "tingodb": "^0.4.2",
-    "progress": "^1.1.8"
+    "progress": "^1.1.8",
+    "emailjs": "^1.0.4"
   }
 }
