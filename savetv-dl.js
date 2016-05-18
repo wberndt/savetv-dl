@@ -340,7 +340,35 @@ let handleSingleVideo = function(video) {
     });
 };
 
-login(parameter.user, parameter.password)
+
+/**
+ * Removes partial downloaded files from crashed previous runs.
+ *
+ * @returns {Promise}
+ */
+let cleanUp = function() {
+    return new Promise(function(resolve, reject) {
+        // Iterate through current directory and delete all files with a .savetv_temp extension.
+        fs.readdir('./', function(err, files) {
+            if(err) return reject(err);
+
+            files.forEach(function(file) {
+                if(path.extname(file) === ".savetv_temp") {
+                    console.log(`Removing old tempfile: ${file}`);
+                    fs.unlinkSync(path.join('./', file));
+                }
+            });
+
+            return resolve();
+        });
+    });
+};
+
+
+cleanUp()
+    .then(function() {
+        return login(parameter.user, parameter.password)
+    })
     .then(function(cookie) {
         console.log("Login successful.");
         authcookie=cookie;
