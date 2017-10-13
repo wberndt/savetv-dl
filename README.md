@@ -1,6 +1,9 @@
 # savetv-dl
 
-This is a small node.js based tool for downloading your https://save.tv/ video collection.
+This ~~is~~ was a small node.js based tool for downloading your https://save.tv/ video collection.
+
+:exclamation:
+**Please note that this tool doesn't work anymore, as save.tv changed their website-structure in the past and may now offer a real API. I don't use their service anymore, so this repository is for historical reasons only.**
 
 ## Installation
 
